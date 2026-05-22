@@ -6,6 +6,9 @@ A production-ready RAG system for querying technical documentation with citation
 import os
 import time
 import hashlib
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import List, Optional
 from functools import lru_cache
 
@@ -74,13 +77,15 @@ def load_documents(docs_path: str = "./docs") -> List:
     print(f"Loading documents from {docs_path}...")
     
     # Load all text and markdown files
-    loader = DirectoryLoader(
-        docs_path,
-        glob="**/*.{txt,md}",
-        loader_cls=TextLoader,
-        show_progress=True
-    )
-    documents = loader.load()
+    documents = []
+    for pattern in ("**/*.md", "**/*.txt"):
+        loader = DirectoryLoader(
+            docs_path,
+            glob=pattern,
+            loader_cls=TextLoader,
+            show_progress=True
+        )
+        documents.extend(loader.load())
     print(f"Loaded {len(documents)} documents")
     
     # Split into chunks with overlap for better context
@@ -109,7 +114,6 @@ def create_vectorstore(chunks: List, persist_directory: str = "./vectorstore"):
     """
     print("Creating embeddings and vector store...")
     
-    # Use OpenAI embeddings (can switch to Anthropic if needed)
     embeddings = OpenAIEmbeddings()
     
     # Create FAISS vector store (free, runs locally)
@@ -135,7 +139,7 @@ def create_qa_chain(vectorstore, temperature: float = 0.0):
     """
     # Use GPT-4 for better reasoning (can switch to Claude)
     llm = ChatOpenAI(
-        model_name="gpt-4",
+        model_name="gpt-3.5-turbo",
         temperature=temperature
     )
     
@@ -201,7 +205,7 @@ async def startup_event():
     persist_dir = "./vectorstore"
     docs_dir = "./docs"
     
-    if os.path.exists(persist_dir):
+    if os.path.exists(os.path.join(persist_dir, "index.faiss")):
         print("Loading existing vector store...")
         embeddings = OpenAIEmbeddings()
         vectorstore = FAISS.load_local(persist_dir, embeddings)
