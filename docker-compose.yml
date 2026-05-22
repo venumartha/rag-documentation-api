@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  rag-api:
+    build: .
+    container_name: rag-documentation-api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./docs:/app/docs
+      - ./vectorstore:/app/vectorstore
+    restart: unless-stopped
